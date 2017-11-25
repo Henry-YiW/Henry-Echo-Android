@@ -97,13 +97,13 @@ public class MainActivity extends AppCompatActivity {
     //volatile boolean refreshing=false;
     //volatile boolean added=false;
     public static volatile boolean StopGettingData=false;
-    onDemandRefresh refreshthread=new onDemandRefresh(null);
+    onDemandRefresh refreshthread=new onDemandRefresh();
     public static volatile File fileDir;
     public volatile boolean StopDaemon=false;
-    String URL="http://168.150.116.167:8080/Smart_Home/Inquire";
-    String URL2="http://168.150.116.167:8080/Smart_Home/InquireData";
-    String URL3="http://168.150.116.167:8080/Smart_Home/Control";
-    String URL4="http://168.150.116.167:8080/Smart_Home/RegistrationPlusStateupdate";
+    String URL="http://192.168.1.73:8080/Smart_Home/Inquire";
+    String URL2="http://192.168.1.73:8080/Smart_Home/InquireData";
+    String URL3="http://192.168.1.73:8080/Smart_Home/Control";
+    String URL4="http://192.168.1.73:8080/Smart_Home/RegistrationPlusStateupdate";
     updatedkeeper UpdateKeeper = null;
     public static volatile boolean onDemandRefreshing=false;
     final ArrayList<Integer> ApparatusBeingControlled =new ArrayList<>(9);
@@ -155,8 +155,14 @@ public class MainActivity extends AppCompatActivity {
     AnimatorSet progressbarDescendAnimator;
     refreshingani refreshinganiThread;
 
-
-
+    Button mainbutton;
+    final DrawingMethods.drawPie drawPie=new DrawingMethods.drawPie();
+    CustomDrawingThread paintingThread;
+    private final Object lock=new Object();
+    Chart chart;
+    //View view;
+    TextView text1;
+    TextView text2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -173,6 +179,8 @@ public class MainActivity extends AppCompatActivity {
         handler = new Handler();
         //用View就可以了其实不用转型
         CoordinatorLayout main = (CoordinatorLayout)findViewById(R.id.activity_main);
+        main.setOnTouchListener(new mainactivityontouch());
+        chart= findViewById(R.id.chart);
         addbuttonlistener=new AddButtonListener();
         fm = getFragmentManager();
         fab =  findViewById(R.id.AddButton);
@@ -191,6 +199,27 @@ public class MainActivity extends AppCompatActivity {
                 if (!AddDialog.isAdded()) {
                     AddDialog.setArguments(arguments);
                     AddDialog.show(getFragmentManager(), "AddDialog");
+                }
+            }
+        });
+        text1=findViewById(R.id.text1);
+        text2=findViewById(R.id.text2);
+        mainbutton=findViewById(R.id.getupdate);
+        mainbutton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!MainActivity.onDemandRefreshing) {
+                    //v.setClickable(false);
+                    //v.setActivated(true);
+
+                    checkPaintingThread();
+                    //paintingThread.refresh(drawPie.configure(handler,chart,600, mainbutton.getX(), Data.getDataset(Data.Type_Electricity)));
+                    chart.setImage(0,0,300,300,getDrawable(R.drawable.icon5),0,0,0,true);
+
+                    //chart.setSimpleline(0,0,200,200,0xffffffff, Paint.Cap.ROUND,20,true);
+                    resetButtons(v);
+
+
                 }
             }
         });
@@ -266,18 +295,7 @@ public class MainActivity extends AppCompatActivity {
 
         resetMenuItemStatus();
 
-        //for (int i=0;i<menu.size();i++){
-        //
-        //    MenuItem item = menu.findItem(R.id.Menu_Settings);
-        //    if (item!=null) {
-        //        //用这个得到view需要程序以及activity的theme属于Theme.AppCompat,然后在menu.xml里设置item 的app:actionViewClass 才行。
-        //        View view = MenuItemCompat.getActionView(item);
-        //        //Log.d("ToolbarMenuClass",(view.getClass().toString()));
-        //        //view.setBackground(getDrawable(R.drawable.transparent));
-        //    }
-        //
-        //
-        //}
+
     }
 
 
@@ -299,6 +317,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         Log.d("MainActivity","Paused");
+        //paintingThread.interrupt();
         if (toStartOtherActivity) {
             ApplicationTitle.setVisibility(View.INVISIBLE);
             if (AlertPrompt != null)
@@ -309,6 +328,26 @@ public class MainActivity extends AppCompatActivity {
 
                 
             }
+        }
+    }
+
+    void resetButtons(View v){
+        //for (Button temp:Buttonset){
+        //    if (temp!=v){
+        //        temp.setClickable(true);
+        //        temp.setActivated(false);
+        //    }
+        //}
+    }
+
+    boolean checkPaintingThread(){
+        if (paintingThread==null||!paintingThread.isAlive()){
+            paintingThread=new CustomDrawingThread();
+            paintingThread.setName("paintingThread");
+            paintingThread.start();
+            return false;
+        }else {
+            return true;
         }
     }
 
@@ -332,21 +371,13 @@ public class MainActivity extends AppCompatActivity {
                 UpdateKeeper.start();
                 break;
             }
+            if (!checkPaintingThread()){
+                break;
+            }
             trytimes++;
         }
-        //long duration = AnimationUtils.loadAnimation(this,R.anim.rotation_endless).getDuration();
-        //
-        //ApplicationTitle.setVisibility(View.INVISIBLE);//不过好像MainActivity不需要这样。但前提是，在onPause或onStop里设置它为INVISIBLE。
-        ////if (CriticalPrompts!=null)
-        ////    CriticalPrompts.setVisibility(View.INVISIBLE);
-        //handler.postDelayed(new Runnable() {
-        //    @Override
-        //    public void run() {
-        //        ApplicationTitle.setVisibility(View.VISIBLE);
-        //        if (CriticalPrompts!=null)
-        //            CriticalPrompts.setVisibility(View.VISIBLE);
-        //    }
-        //},duration);
+
+
         if (toStartOtherActivity) {
             ApplicationTitle.setVisibility(View.INVISIBLE);
             if (AlertPrompt != null)
@@ -416,10 +447,95 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public class mainactivityontouch implements View.OnTouchListener{
+        Fragment fragment1;
+        Fragment fragment2;
+        float usedX;float usedY;
+        float Xdistance=-1;float distancetempX=0;
+        float Ydistance=-1;float distancetempY=0;
+        boolean refreshing=false;
+        boolean moving=false;
+        //float startv1X;float startv2X;float startpY;
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            float with = getResources().getDisplayMetrics().widthPixels;
+            //refreshEndY=originalPY+progressbar.getHeight()+Maxprogress;
+
+            //Log.d("IDis",String.valueOf(R.id.my_view));
+            if (event!=null) {
+                if (event.getAction()==MotionEvent.ACTION_DOWN){
+
+
+                    usedX = event.getX();
+                    usedY = event.getY();
+                    Xdistance = 0;
+                    Ydistance = 0;
+                    refreshing=false;
+                }
+                if (event.getAction() == MotionEvent.ACTION_MOVE) {
+
+                    Ydistance = Ydistance + event.getY() - usedY;
+                    Xdistance = Xdistance + event.getX() - usedX;
+                    distancetempX = event.getX() - usedX;
+                    distancetempY = event.getY() - usedY;
+                    usedX = event.getX();
+                    usedY = event.getY();
+                    if (Ydistance>Math.abs(Xdistance)+10){
+
+                        refreshing=true;
+                    }
+                    if (refreshing&&!refreshinganirunning){
+                        //Log.d("WHATREFRESH",String.valueOf(originalPY+progressbar.getHeight()+100));
+                        if (progressbar.getY()+distancetempY<refreshEndY
+                                &&progressbar.getY()+distancetempY>originalPY) {
+                            progressbar.setY(progressbar.getY() + distancetempY);
+                            progressbar.setProgress((int)(progressbar.getY()-refreshEndY+Maxprogress));
+
+                        }
+                        else if (progressbar.getY()+distancetempY>=refreshEndY){
+                            progressbar.setY(refreshEndY);
+                            progressbar.setProgress(progressbar.getMax());
+                        }
+
+
+                    }
+
+                }
+            }
+            if (event.getAction() == MotionEvent.ACTION_UP ){
+                if(refreshing&&!refreshinganirunning){
+                    if (progressbar.getY()+distancetempY>=refreshEndY||progressbar.getY()>=refreshEndY){
+
+                        StopGettingData=true;
+                        refreshthread.interrupt();
+                        try {Thread.sleep(5);} catch (InterruptedException e) {e.printStackTrace();}
+                        refreshthread=new onDemandRefresh();
+                        refreshthread.start();
+                        progressbar.setProgress(progressbar.getMax());
+                    }
+                    else {
+                        progressbarReturn(progressbar, 2);
+                    }
+                }
+
+                moving=false;
+                Xdistance = 0;
+                Ydistance = 0;
+                refreshing= false;
+            }
+            //这里返回true的话，就是触摸事件的所有信息都会交给触摸的控件的监听器来处理，而返回false则只会在ACTION_DOWN（也就是第一个触摸事件）时交给这里处理，
+            //而剩下的其他的触摸事件（比如ACTION_MOVE/ACTION_UP）则不会交给控件绑定的监听器来处理，而是传递给控件下层的控件的监听器来处理。
+            //return gesturedetector.onTouchEvent(event);
+            return true;
+        }
+
+    }
+
+
 
     private class onDemandRefresh extends Thread {
-        Fragment fragment;
         public void run() {
+            View view=findViewById(R.id.include);
             onDemandRefreshing=true;
 
             Log.d("onDemandRefreshing","Started");
@@ -460,8 +576,8 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("HasbeenForcedlyClosed","beenclosed");
                     StopRefreshView=true;
                     break;
-                case 15:
-                    Snackbar prompt = Snackbar.make(fragment.getView(), R.string.DataFetch_SUCCESSFUL, Snackbar.LENGTH_LONG)
+                case 1:
+                    Snackbar prompt = Snackbar.make(view, R.string.DataFetch_SUCCESSFUL, Snackbar.LENGTH_LONG)
                             .setAction("Action", null);
                     prompt.getView().setBackgroundColor(colorPrimary.data);
                     prompt.show();
@@ -480,48 +596,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         msg+=getString(R.string.electricity)+"-";
                     }
-                    tempstatus=tempstatus>>1;
-                    if ((tempstatus&1)==0){
-                        try {
-                            input3=openFileInput("Humidityset");
-                        } catch (FileNotFoundException e) {
-                            Log.d("NoFile","Humidityset");
-                            status|=Data.Type_Humidity;
-                        }
-                        try {
-                            input3C=openFileInput("HumidityColorSet");
-                        } catch (FileNotFoundException e) {
-                            Log.d("NoFile","HumidityColorSet");
-                        }
-                        msg+=getString(R.string.humidity)+"-";
-                    }
-                    tempstatus=tempstatus>>1;
-                    if ((tempstatus&1)==0){
-                        try {
-                            input2=openFileInput("Temperatureset");
-                        } catch (FileNotFoundException e) {
-                            Log.d("NoFile","Temperatureset");
-                            status|=Data.Type_Temperature;
-                        }
-                        try {
-                            input2C=openFileInput("TemperatureColorSet");
-                        } catch (FileNotFoundException e) {
-                            Log.d("NoFile","TemperatureColorSet");
-                        }
-                        msg+=getString(R.string.temperature)+"-";
-                    }
-                    tempstatus=tempstatus>>1;
-                    if ((tempstatus&1)==0){
-                        try {
-                            input1=openFileInput("Apparatusset");
-                        } catch (FileNotFoundException e) {
-                            Log.d("NoFile","Apparatusset");
-                            status|=Data.Type_apparatuscfgset;
-                        }
-                        msg+=getString(R.string.apparatus)+"-";
-                    }else {
-                    }
-                    Snackbar prompt2 = Snackbar.make(fragment.getView(), msg+getString(R.string.DataFetch_Failed_Try_Using_Backup_Data), Snackbar.LENGTH_LONG)
+                    Snackbar prompt2 = Snackbar.make(view, msg+getString(R.string.DataFetch_Failed_Try_Using_Backup_Data), Snackbar.LENGTH_LONG)
                             .setAction("Action", null);
                     prompt2.getView().setBackgroundColor(colorPrimary.data);
                     prompt2.show();
@@ -534,31 +609,6 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         ObjectInputStream objinput;
                         if (Thread.currentThread().isInterrupted()){break;}
-                        if (input1!=null){
-                            objinput = new ObjectInputStream(input1);
-                            Data.setData(Data.Type_apparatuscfgset,(ArrayList) objinput.readObject());
-                            objinput.close();input1.close();}
-                        if (Thread.currentThread().isInterrupted()){break;}
-                        if (input2!=null){
-                            objinput = new ObjectInputStream(input2);
-                            Data.setData(Data.Type_Temperature,(ArrayList) objinput.readObject());
-                            objinput.close();input2.close();}
-                        if (Thread.currentThread().isInterrupted()){break;}
-                        if (input2C!=null){
-                            objinput = new ObjectInputStream(input2C);
-                            Data.setColorset(Data.Type_Temperature,(ArrayList<Integer>)objinput.readObject(),null);
-                            objinput.close();input2C.close();}
-                        if (Thread.currentThread().isInterrupted()){break;}
-                        if (input3!=null){
-                            objinput = new ObjectInputStream(input3);
-                            Data.setData(Data.Type_Humidity,(ArrayList) objinput.readObject());
-                            objinput.close();input3.close();}
-                        if (Thread.currentThread().isInterrupted()){break;}
-                        if (input3C!=null){
-                            objinput = new ObjectInputStream(input3C);
-                            Data.setColorset(Data.Type_Humidity,(ArrayList<Integer>)objinput.readObject(),null);
-                            objinput.close();input3C.close();}
-                        if (Thread.currentThread().isInterrupted()){break;}
                         if (input4!=null){
                             objinput = new ObjectInputStream(input4);
                             Data.setData(Data.Type_Electricity,(ArrayList) objinput.readObject());
@@ -569,20 +619,8 @@ public class MainActivity extends AppCompatActivity {
                     if ((status&1)==1){
                         msg+=getString(R.string.electricity)+"-";
                     }
-                    status=status>>1;
-                    if ((status&1)==1){
-                        msg+=getString(R.string.humidity)+"-";
-                    }
-                    status=status>>1;
-                    if ((status&1)==1){
-                        msg+=getString(R.string.temperature)+"-";
-                    }
-                    status=status>>1;
-                    if ((status&1)==1){
-                        msg+=getString(R.string.apparatus)+"-";
-                    }
                     if (!msg.isEmpty()) {
-                        Snackbar prompt3 = Snackbar.make(fragment.getView(), getString(R.string.No) + msg + getString(R.string.Backup_Data), Snackbar.LENGTH_LONG)
+                        Snackbar prompt3 = Snackbar.make(view, getString(R.string.No) + msg + getString(R.string.Backup_Data), Snackbar.LENGTH_LONG)
                                 .setAction("Action", null);
                         prompt3.getView().setBackgroundColor(colorPrimary.data);
                         prompt3.show();
@@ -609,9 +647,7 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        onDemandRefresh(Fragment fragment){
-            this.fragment=fragment;
-        }
+
     }
 
     int refresh (String URL, String URL2){
@@ -628,11 +664,6 @@ public class MainActivity extends AppCompatActivity {
         Data.OnsuccessProcess onsuccessProcess=new Data.OnsuccessProcess(howmany,todowhat);
         if (Thread.currentThread().isInterrupted()){return -1;}
         parameters.put("user","henry");parameters.put("pass","yiweigang");
-        OKHttpTool.asyncCustomPostFormforJsonObject(URL, parameters, onsuccessProcess, new Data.OnFailed(Data.Type_apparatuscfgset,4,todowhat));
-        parameters.put("Type","Temperature");
-        OKHttpTool.asyncCustomPostFormforJsonObject(URL2, parameters, onsuccessProcess, new Data.OnFailed(Data.Type_Temperature,4,todowhat));
-        parameters.put("Type","Humidity");
-        OKHttpTool.asyncCustomPostFormforJsonObject(URL2, parameters, onsuccessProcess, new Data.OnFailed(Data.Type_Humidity,4,todowhat));
         parameters.put("Type","appliance");
         OKHttpTool.asyncCustomPostFormforJsonObject(URL2, parameters, onsuccessProcess, new Data.OnFailed(Data.Type_Electricity,4,todowhat));
         int status=0;String msg="";int tempstatus;int trytimes=0;
@@ -650,15 +681,15 @@ public class MainActivity extends AppCompatActivity {
             Status_Temperature=Data.Status_Temperature;
             Status_Humidity=Data.Status_Humidity;
             Status_Electricity=Data.Status_Electricity;
-            if (Status_apparatus==Data.RefreshDone){
-                status|=Data.Type_apparatuscfgset;
-            }
-            if (Status_Temperature==Data.RefreshDone){
-                status|=Data.Type_Temperature;
-            }
-            if (Status_Humidity==Data.RefreshDone){
-                status|=Data.Type_Humidity;
-            }
+            //if (Status_apparatus==Data.RefreshDone){
+            //    status|=Data.Type_apparatuscfgset;
+            //}
+            //if (Status_Temperature==Data.RefreshDone){
+            //    status|=Data.Type_Temperature;
+            //}
+            //if (Status_Humidity==Data.RefreshDone){
+            //    status|=Data.Type_Humidity;
+            //}
             if (Status_Electricity==Data.RefreshDone){
                 status|=Data.Type_Electricity;
             }
@@ -683,8 +714,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d("DataStatus",msg);
             if (StopGettingData){return -1;}
             if (Thread.currentThread().isInterrupted()){StopGettingData=true;return -1;}
-            if (Status_apparatus!=Data.DefaultRefresh&&Status_Humidity!=Data.DefaultRefresh
-                    &&Status_Temperature!=Data.DefaultRefresh&&Status_Electricity!=Data.DefaultRefresh){
+            if (Status_Electricity!=Data.DefaultRefresh){
                 if (Thread.currentThread().isInterrupted()){StopGettingData=true;return -1;}
                 return status;
             }
@@ -802,6 +832,43 @@ public class MainActivity extends AppCompatActivity {
 
     void setdefaultfragment (){
         getTheme().resolveAttribute(R.attr.colorPrimary,colorPrimary,true);
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                if (fab.getHeight()==0){
+                    handler.postDelayed(this,5);
+                    return;
+                }
+
+
+                originalPY=progressbar.getY();
+                refreshEndY=originalPY+progressbar.getHeight()+Maxprogress;
+                fileDir=getFilesDir();
+                progressbar.setMax(Maxprogress);
+                StopGettingData=true;
+                refreshthread.interrupt();
+                //StopDaemon=true;
+                //if (UpdateKeeper!=null){
+                //    UpdateKeeper.interrupt();
+                //}
+                //initiateToolbar(toolbar,ActivityMenu);
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (progressbar.getHeight()!=0) {
+                            Log.d("onDemandRefresh","hasrunning");
+                            progressbarDescend(progressbar);
+                            refreshthread = new onDemandRefresh();
+                            refreshthread.start();
+                        }else {
+                            handler.postDelayed(this,10);
+                        }
+                    }
+                },10);
+
+            }
+        },5);
 
    }
 
@@ -835,8 +902,15 @@ public class MainActivity extends AppCompatActivity {
     class updatedkeeper extends Thread {
         int sleeptime;int defaultsleeptime;int autorestoretime;int anomalyduration=0;
         Map<String,String> parameters=new HashMap<>(2);
+        Data.whattodonext whattodonext=new Data.whattodonext() {
+            volatile boolean activatedSet = false;
 
-        Data.OnsuccessProcess onsuccessProcess= new Data.OnsuccessProcess(0,null);
+            @Override
+            public void todo() {
+                setDisconnected(false);
+            }
+        };
+        Data.OnsuccessProcess onsuccessProcess= new Data.OnsuccessProcess(0,whattodonext);
         boolean firstrapidly=false;
         @Override
         public void run() {
@@ -995,7 +1069,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    class CustomDrawingThread extends Thread{
+        Runnable runnable;volatile boolean runfinished=false;
+        @Override
+        public void run() {
 
+            while (true){
+                if (runnable != null) {
+                    runfinished=false;
+                    runnable.run();
+                    runnable = null;
+                }
+
+                if (isInterrupted()){
+                    return;
+                }
+                synchronized (lock){
+                    try {
+                        runfinished=true;
+                        lock.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+            }
+        }
+
+        void refresh (Runnable runnable){
+            synchronized (this){
+                DrawingMethods.stopani=true;
+                while (true){
+                    //if(this.getState()==State.WAITING||this.getState()==State.TIMED_WAITING){
+                    if(runfinished){
+                        DrawingMethods.stopani=false;
+                        break;
+                    }
+                }
+                this.runnable=runnable;
+                synchronized (lock){
+                    lock.notify();
+                }
+            }
+
+        }
+    }
 
 
     public boolean onKeyDown(int keyCode,KeyEvent event) {

@@ -10,7 +10,8 @@
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context="com.mywork.henry.henry_echo.MainActivity2"
-    tools:showIn="@layout/activity_main">
+    tools:showIn="@layout/activity_main"
+    >
 
     <com.mywork.henry.henry_echo.Chart
         android:id="@+id/chart"
@@ -25,20 +26,41 @@
         app:layout_constraintVertical_bias="0.0" />
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/getupdate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:text="Button"
+        android:text="@string/getupdate"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/chart"
         app:layout_constraintVertical_bias="0.075" />
 
+    <TextView
+        android:id="@+id/text1"
+        android:layout_width="100dp"
+        android:layout_height="42dp"
+        android:layout_marginBottom="80dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/chart" />
+
+    <TextView
+        android:id="@+id/text2"
+        android:layout_width="100dp"
+        android:layout_height="36dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/chart" />
 
 
 </android.support.constraint.ConstraintLayout>

@@ -4,8 +4,10 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.View;
@@ -70,6 +72,12 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
                         case 5:
                             canvas.drawArc(value.rectF,value.x,value.y,true,paint);
                             break;
+                        case 6:
+                            if (value.customImage!=null){
+                                //canvas.getClipBounds(value.imagebounds);
+                                value.customImage.draw(canvas);
+                            }
+                            break;
                     }
                     if (value.RotateDegree!=0){
                     canvas.restore();
@@ -110,6 +118,10 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
                 case 5:
                     canvas.drawArc(setting.rectF,setting.x,setting.y,true,paint);
                     break;
+                case 6:
+                    if (setting.customImage!=null){
+                        setting.customImage.draw(canvas);
+                    }
             }
             if (setting.RotateDegree!=0){
                 canvas.restore();
@@ -178,6 +190,18 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
         invalidate();
     }
 
+    protected void setImage (float x, float y, float endx, float endy,Drawable customImage, float RotateDegree, float rotatepX, float rotatepY, boolean isNew){
+        if (isNew){
+            this.setting=new setting(x, y, endx, endy, customImage, RotateDegree, rotatepX, rotatepY);
+        }else {
+            settings.add(new setting(x, y, endx, endy, customImage, RotateDegree, rotatepX, rotatepY));
+        }
+
+        invalidate();
+    }
+
+
+
     protected void setArrayDrawing (ArrayList<setting> settings){
         this.settings =settings;
         invalidate();
@@ -233,6 +257,7 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
         float x; float y; float endx; float endy; int color; Paint.Cap cap;int textY;RectF rectF;Path path;
         float width; Paint.Style style;Shader shader;String string;Paint.Align textalign;int which;
         float textSize;float RotateDegree;float rotatepX;float rotatepY;
+        Drawable customImage=null; Rect imagebounds=null;
 
         setting(float x, float y, int color, Paint.Cap cap,
                 float width, Paint.Style style, Shader shader){
@@ -263,6 +288,27 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
             this.width=width;this.style=style;this.shader=shader;this.string=string;this.which=which;
             this.textalign =textalign;this.textY=textY;this.rectF = rectF;this.path=path;this.textSize=textSize;
             this.RotateDegree=RotateDegree;this.rotatepX=rotatepX;this.rotatepY=rotatepY;
+        }
+
+        setting (float x, float y, float endx, float endy,Drawable customImage, float RotateDegree, float rotatepX, float rotatepY){
+            this(x,y,endx,endy,0xffffffff, Paint.Cap.ROUND,20);
+            this.customImage=customImage;
+            this.imagebounds=new Rect(((int) x), ((int) y), ((int) endx), ((int) endy));
+            customImage.setBounds(imagebounds);
+            this.RotateDegree=RotateDegree;this.rotatepX=rotatepX;this.rotatepY=rotatepY;
+            this.which=6;
+        }
+
+        protected setting setAlpha (int alpha){
+            if (customImage!=null){
+                customImage.setAlpha(alpha);
+            }else {
+                int color = FormatFactory.getColorWithoutAlpha(this.color);
+                alpha *= 0x100_0000;
+                color += alpha;
+                this.color = color;
+            }
+            return this;
         }
 
     }
