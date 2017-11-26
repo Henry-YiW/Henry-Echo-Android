@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Echo Project</string>
     <string name="getupdate">Get Update</string>
-    <string name="title">Protect Our Home</string>
+    <string name="title">Protect Our Planet</string>
     <string name="persistent">"Persistent "</string>
     <string name="alertable">"Alertable "</string>
     <string name="passive">"Passive "</string>

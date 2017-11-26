@@ -76,6 +76,7 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
                             if (value.customImage!=null){
                                 //canvas.getClipBounds(value.imagebounds);
                                 value.customImage.draw(canvas);
+                                setting.customImage.setAlpha(0xFF);
                             }
                             break;
                     }
@@ -121,6 +122,7 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
                 case 6:
                     if (setting.customImage!=null){
                         setting.customImage.draw(canvas);
+                        setting.customImage.setAlpha(0xFF);
                     }
             }
             if (setting.RotateDegree!=0){
@@ -250,6 +252,10 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
 
         }
         haswiped=true;
+    }
+
+    public setting getSetting() {
+        return setting;
     }
 
 

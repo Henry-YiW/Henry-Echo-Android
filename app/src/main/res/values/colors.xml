@@ -5,13 +5,14 @@
     <color name="default_colorPrimaryDark">#303F9F</color>
     <color name="default_colorAccent">#ff4081</color>
     <color name="colorPrimary">#ff33b5e5</color>
+    <color name="primaryOrange">#ffc107</color>
     <color name="colorPrimaryDark">#ff0099cc</color>
     <color name="colorAccent">#60d4ff</color>
     <color name="My_Green">#67e61e</color>
     <color name="My_Orange">#ffee05</color>
     <color name="My_Accent_Blue">#60d4ff</color>
     <color name="default_backgroundColor">#fffafafa</color>
-    <color name="holo_orange_dark">#ffff8800</color>
-    <color name="holo_orange_light">#ffffbb33</color>
+    <color name="holo_orange_dark">#ff8800</color>
+    <color name="holo_orange_light">#ffbb33</color>
 
 </resources>

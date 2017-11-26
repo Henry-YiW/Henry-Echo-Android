@@ -215,6 +215,15 @@ public class MainActivity extends AppCompatActivity {
                     checkPaintingThread();
                     //paintingThread.refresh(drawPie.configure(handler,chart,600, mainbutton.getX(), Data.getDataset(Data.Type_Electricity)));
                     chart.setImage(0,0,300,300,getDrawable(R.drawable.icon5),0,0,0,true);
+                    //chart.setSimpleline(0,0,300,300,0xff234234, Paint.Cap.ROUND,10,true);
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            chart.getSetting().setAlpha(30);
+                            chart.invalidate();
+                        }
+                    },1000);
+                    //paintingThread.refresh(drawPie.configure(handler,chart,600, v.getX(), Data.getDataset(Data.Type_Electricity)));
 
                     //chart.setSimpleline(0,0,200,200,0xffffffff, Paint.Cap.ROUND,20,true);
                     resetButtons(v);
@@ -317,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         Log.d("MainActivity","Paused");
-        //paintingThread.interrupt();
+        paintingThread.interrupt();
         if (toStartOtherActivity) {
             ApplicationTitle.setVisibility(View.INVISIBLE);
             if (AlertPrompt != null)
@@ -361,7 +370,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         Log.d("MainActivity","Resumed");
 
-        int trytimes=0;
+        int trytimes=0;int settingcount=0;
         while (trytimes<200){
             if (UpdateKeeper==null||!UpdateKeeper.isAlive()){
                 UpdateKeeper=new updatedkeeper(sleeptime,autorestoretime);
@@ -369,9 +378,12 @@ public class MainActivity extends AppCompatActivity {
                 UpdateKeeper.setName("UpdateKeeper");
                 StopDaemon=false;
                 UpdateKeeper.start();
-                break;
+                settingcount|=1;
             }
             if (!checkPaintingThread()){
+                settingcount|=2;
+            }
+            if (settingcount==3){
                 break;
             }
             trytimes++;
@@ -583,7 +595,9 @@ public class MainActivity extends AppCompatActivity {
                     prompt.show();
                     if (Thread.currentThread().isInterrupted()){break;}
                     break;
-                default:String msg="";FileInputStream input1=null;FileInputStream input2=null;
+                default:
+                    setDisconnected(true);
+                    String msg="";FileInputStream input1=null;FileInputStream input2=null;
                     FileInputStream input2C=null;FileInputStream input3C=null;
                     FileInputStream input3=null;FileInputStream input4=null;
                     status=0;
@@ -672,7 +686,7 @@ public class MainActivity extends AppCompatActivity {
             if (StopGettingData){
                 return -1;}
             if (Thread.currentThread().isInterrupted()){StopGettingData=true;return -1;}
-            if (trytimes>3000){
+            if (trytimes>1000){
                 StopGettingData=true;
                 if (Thread.currentThread().isInterrupted()){return -1;}
                 return status;

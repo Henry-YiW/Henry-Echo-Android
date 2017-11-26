@@ -273,7 +273,8 @@ public class Registration extends DialogFragment {
         Child1.add(new Pair<>("regulationsetting",R.layout.regulationsetting_child));//@android:drawable/arrow_down_float
         Integer[] Indicator = new Integer[]{R.id.setregulationindicator,getResources().getIdentifier("arrow_up_float","drawable","android"),getResources().getIdentifier("arrow_down_float","drawable","android")};
         rawViewSet.add(new Pair<>(new Pair<>(Indicator,R.layout.regulationsetting_group),Child1));
-        int[] colorset=new int[]{MainActivity.colorPrimary.data,0xffffffff,getResources().getColor(R.color.My_Orange),getResources().getColor(R.color.holo_orange_dark)};
+        int background1color=getResources().getColor(R.color.default_colorPrimary);//MainActivity.colorPrimary.data;
+        int[] colorset=new int[]{background1color,0xffffffff,getResources().getColor(R.color.My_Orange),getResources().getColor(R.color.holo_orange_dark)};
         if (registrationexpandablelistviewadapter==null){
             registrationexpandablelistviewadapter=new RegistrationExpandableListViewAdapter(getActivity(),rawViewSet,colorset,SetRegulation);
         }
