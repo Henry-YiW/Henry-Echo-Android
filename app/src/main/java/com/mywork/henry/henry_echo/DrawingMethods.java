@@ -1,6 +1,7 @@
 package com.mywork.henry.henry_echo;
 
 import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -38,8 +39,7 @@ public class DrawingMethods {
         int throttle = 500;
         private Object[] configuration;
         //private Drawable[] images;
-        private Resources resources;
-        private int[] images;
+        private Bitmap[] images;
 
         public void run() {
             if (configuration!=null) {
@@ -487,7 +487,7 @@ public class DrawingMethods {
 
                                 return;
                             }
-                            drawindicators(temp, datasum, pastdegree,centerX+datacenterY+60,chart,7,resources,images[count],bounds,3);
+                            drawindicators(temp, datasum, pastdegree,centerX+datacenterY+60,chart,7,images,bounds,getImages((int) temp.data));
                             if (stopani) {
 
                                 return;
@@ -531,8 +531,29 @@ public class DrawingMethods {
         }
 
 
+        private int[] getImages(int data){
+            int a=100,b=50,c=20,d=5,e=1;
+            int[] resultset=new int[5];
+            int result=data/a;
+            resultset[0]=result;
+            data-=result;
+            result=data/b;
+            resultset[1]=result;
+            data-=result;
+            result=data/c;
+            resultset[2]=result;
+            data-=result;
+            result=data/d;
+            resultset[3]=result;
+            data-=result;
+            result=data/e;
+            resultset[4]=result;
+            data-=result;
+            return resultset;
+        }
+
         private void drawindicators (Data.dataset dataset, float datasum, float pastdegree, final float endx, final Chart chart, final int width,
-                                     final Resources resources, final int image, final Rect bounds, int number){
+                                     final Bitmap[] images, final Rect bounds, int[] number){
             final float x,y;
             float data = dataset.data;
             float degree=(data/datasum)*360;
@@ -595,37 +616,42 @@ public class DrawingMethods {
                             chart.setArrayDrawing(tempdrawingsave);
                         }
                     });
-                    int num=0;float startx=endx+10;
-                    while (num<number){
-                        if (stopani) {
+                    float startx=endx+10;
+                    for (int i=0;i<number.length;i++){
+                        int num=0;
+                        while (num<number[i]){
+                            if (stopani) {
 
-                            return;
-                        }
-                        savedrawing(new Chart.setting(startx,y-bounds.bottom/2,startx+bounds.right,y+bounds.bottom/2,resources,image,0,0,0));
-                        final float finalStartx = startx;
-                        if (stopani) {
-
-                            return;
-                        }
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                chart.setImage(finalStartx,y-bounds.bottom/2, finalStartx +bounds.right,y+bounds.bottom/2,resources,image,0,0,0,false);
+                                return;
                             }
-                        });
-                        startx+=bounds.right+10;
-                        num++;
-                        if (stopani) {
+                            savedrawing(new Chart.setting(startx,y-bounds.bottom/2,startx+bounds.right,y+bounds.bottom/2,images[i],0,0,0));
+                            final float finalStartx = startx;
+                            if (stopani) {
 
-                            return;
-                        }
-                        try {
-                            Thread.sleep(sleeptimes*10);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                            return;
+                                return;
+                            }
+                            final int finalI = i;
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    chart.setImage(finalStartx,y-bounds.bottom/2, finalStartx +bounds.right,y+bounds.bottom/2,images[finalI],0,0,0,false);
+                                }
+                            });
+                            startx+=bounds.right+10;
+                            num++;
+                            if (stopani) {
+
+                                return;
+                            }
+                            try {
+                                Thread.sleep(sleeptimes*10);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                                return;
+                            }
                         }
                     }
+
 
                     if (stopani) {
 
@@ -732,17 +758,16 @@ public class DrawingMethods {
 
         private void configure (Object[] configuration){
             configure(((Handler) configuration[0]), ((Chart) configuration[1]), ((int) configuration[2]), ((float) configuration[3])
-                    , ((ArrayList) configuration[4]), ((Resources) configuration[5]), ((int[]) configuration[6]));
+                    , ((ArrayList) configuration[4]), ((Resources) configuration[5]), ((Bitmap[]) configuration[6]));
             this.configuration=null;
         }
 
-        private void  configure (Handler handler, Chart chart, int time, float startX, ArrayList dataset, Resources resources,int [] images ){
+        private void  configure (Handler handler, Chart chart, int time, float startX, ArrayList dataset, Resources resources,Bitmap [] images ){
             this.handler=handler;
             this.tempchart=chart;
             this.time=time;
             this.dataset = (ArrayList<Data.dataset>) dataset.clone();this.startX=startX;
             this.images=images;
-            this.resources=resources;
         }
 
         private void setDefault(){
@@ -755,9 +780,15 @@ public class DrawingMethods {
             this.data=0;this.tempdegree=0;this.dataRectF=null;this.datacenterY=0;this.centerX=0;
             this.path=null;this.linemargin.clear();this.align=null;
             this.textStartX=0;
+            recyclebitmaps(images);
             this.images=null;
-            this.resources=null;
 
+
+        }
+        void recyclebitmaps (Bitmap[] images){
+            for (int i=0;i<images.length;i++){
+                images[i].recycle();
+            }
         }
 
         private float getArcdrift (final Chart chart){

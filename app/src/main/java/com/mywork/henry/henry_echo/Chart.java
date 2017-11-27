@@ -209,11 +209,11 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
         invalidate();
     }
 
-    protected void setImage (float x, float y, float endx, float endy,Resources resources,int ids, float RotateDegree, float rotatepX, float rotatepY, boolean isNew){
+    protected void setImage (float x, float y, float endx, float endy,Bitmap images, float RotateDegree, float rotatepX, float rotatepY, boolean isNew){
         if (isNew){
             //this.setting=new setting(x, y, endx, endy, customImage, RotateDegree, rotatepX, rotatepY);
         }else {
-            settings.add(new setting(x, y, endx, endy, resources, ids, RotateDegree, rotatepX, rotatepY));
+            settings.add(new setting(x, y, endx, endy, images, RotateDegree, rotatepX, rotatepY));
         }
 
         invalidate();
@@ -326,14 +326,14 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
             this.alpha=alpha;
         }
 
-        setting (float x, float y, float endx, float endy, Resources resources,int ids, float RotateDegree, float rotatepX, float rotatepY){
+        setting (float x, float y, float endx, float endy, Bitmap image, float RotateDegree, float rotatepX, float rotatepY){
             this(x,y,endx,endy,0xffffffff, Paint.Cap.ROUND,20);
             this.customImage=customImage;
             //this.imagebounds=new Rect(((int) x), ((int) y), ((int) endx), ((int) endy));
-            Bitmap b = BitmapFactory.decodeResource(resources,ids);
+            //Bitmap b = BitmapFactory.decodeResource(resources,ids);
             //b=b.copy(Bitmap.Config.ARGB_8888, true);
-            Bitmap realb=Bitmap.createScaledBitmap(b, ((int) (endx - x)), ((int) (endy - y)), false);
-            b.recycle();
+            Bitmap realb=Bitmap.createScaledBitmap(image, ((int) (endx - x)), ((int) (endy - y)), false);
+            //image.recycle();
             this.b=realb;
             //customImage.setBounds(imagebounds);
             this.RotateDegree=RotateDegree;this.rotatepX=rotatepX;this.rotatepY=rotatepY;

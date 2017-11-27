@@ -11,6 +11,8 @@ import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.AnimationDrawable;
@@ -157,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
     AnimatorSet progressbarDescendAnimator;
     refreshingani refreshinganiThread;
 
-    Button mainbutton;
+    Button mainbutton;Button mainbutton2;
     final DrawingMethods.drawPie drawPie=new DrawingMethods.drawPie();
     final DrawingMethods.fade fade =new DrawingMethods.fade();
     CustomDrawingThread paintingThread;
@@ -166,6 +168,12 @@ public class MainActivity extends AppCompatActivity {
     //View view;
     TextView text1;
     TextView text2;
+    animationupdatelistener animationupdatelistener;
+    ValueAnimator text1animator;
+    ValueAnimator text2animator;
+
+    mainbuttononclicklistener mainbuttononclicklistener = new mainbuttononclicklistener();
+    mainbutton2listener mainbutton2listener = new mainbutton2listener();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -208,47 +216,10 @@ public class MainActivity extends AppCompatActivity {
         text1=findViewById(R.id.text1);
         text2=findViewById(R.id.text2);
         mainbutton=findViewById(R.id.getupdate);
-        mainbutton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!MainActivity.onDemandRefreshing) {
-                    //v.setClickable(false);
-                    //v.setActivated(true);
-
-                    checkPaintingThread();
-                    Object[] configuration = new Object[7];
-                    configuration[0]=handler;
-                    configuration[1]=chart;
-                    configuration[2]=600;
-                    configuration[3]=v.getX();
-                    configuration[4]=Data.getDataset(Data.Type_Electricity);
-                    configuration[5]=getResources();//new Drawable[]{getDrawable(R.drawable.icon5),getDrawable(R.drawable.icon3),getDrawable(R.drawable.fab_10)};
-                    configuration[6]=new int[]{R.drawable.icon5,R.drawable.icon3,R.drawable.fab_10};
-                    paintingThread.refresh(drawPie.reset(configuration));
-                    Object[] configuration2 = new Object[]{handler,chart,200};
-                    paintingThread.next(fade.reset(configuration2));
-                    paintingThread.next(drawPie,configuration);
-                    //chart.setImage(0,0,300,300,getDrawable(R.drawable.icon5),0,0,0,true);
-                    //chart.setSimpleline(0,0,300,300,0xff234234, Paint.Cap.ROUND,10,true);
-                    //handler.postDelayed(new Runnable() {
-                    //    @Override
-                    //    public void run() {
-                    //        if (chart.getSetting()!=null) {
-                    //            chart.getSetting().setAlpha(30);
-                    //        }
-                    //        chart.invalidate();
-                    //    }
-                    //},1000);
-                    //paintingThread.refresh(drawPie.configure(handler,chart,600, v.getX(), Data.getDataset(Data.Type_Electricity)));
-
-                    //chart.setSimpleline(0,0,200,200,0xffffffff, Paint.Cap.ROUND,20,true);
-                    resetButtons(v);
-
-
-                }
-            }
-        });
-        progressbar = (Refreshprogressbar) findViewById(R.id.progressBar);
+        mainbutton.setOnClickListener(mainbuttononclicklistener);
+        mainbutton2=findViewById(R.id.getupdate2);
+        mainbutton2.setOnClickListener(mainbutton2listener);
+        progressbar = findViewById(R.id.progressBar);
         Maincontext=this;
         Mainactivity=this;
         Disconnected=getIntent().getBooleanExtra("Disconnected",false);
@@ -261,6 +232,192 @@ public class MainActivity extends AppCompatActivity {
         //button2.setOnTouchListener(new buttonontouch());
         setdefaultfragment();
 
+    }
+
+    private class mainbuttononclicklistener implements View.OnClickListener{
+        int status=0;
+        @Override
+        public void onClick(View v) {
+            if (!MainActivity.onDemandRefreshing) {
+                //v.setClickable(false);
+                //v.setActivated(true);
+                switch (status){
+                    case 0:
+                        checkPaintingThread();
+                        Object[] configuration = new Object[7];
+                        configuration[0]=handler;
+                        configuration[1]=chart;
+                        configuration[2]=600;
+                        configuration[3]=v.getX();
+                        configuration[4]=Data.getDataset(Data.Type_Electricity);
+                        configuration[5]=getResources();//new Drawable[]{getDrawable(R.drawable.icon5),getDrawable(R.drawable.icon3),getDrawable(R.drawable.fab_10)};
+                        Bitmap [] images=new Bitmap[]{BitmapFactory.decodeResource(getResources(),R.drawable.icon5),
+                                BitmapFactory.decodeResource(getResources(),R.drawable.icon3),
+                                BitmapFactory.decodeResource(getResources(),R.drawable.disconnection_icon_2),
+                                BitmapFactory.decodeResource(getResources(),R.drawable.refreshicon),
+                                BitmapFactory.decodeResource(getResources(),R.drawable.fab_10)};
+                        configuration[6]=images;
+                        paintingThread.refresh(drawPie.reset(configuration));
+                        Object[] configuration2 = new Object[]{handler,chart,200};
+                        paintingThread.next(fade.reset(configuration2));
+                        images=new Bitmap[]{BitmapFactory.decodeResource(getResources(),R.drawable.icon5),
+                                BitmapFactory.decodeResource(getResources(),R.drawable.icon3),
+                                BitmapFactory.decodeResource(getResources(),R.drawable.disconnection_icon_2),
+                                BitmapFactory.decodeResource(getResources(),R.drawable.refreshicon),
+                                BitmapFactory.decodeResource(getResources(),R.drawable.fab_10)};
+                        configuration[6]=images;
+                        paintingThread.next(drawPie,configuration);
+                        if (animationupdatelistener==null){
+                            animationupdatelistener=new animationupdatelistener(text1,text2 ,mainbutton, mainbutton2,
+                                    70,chart.getY()+chart.getHeight()+20, mainbutton.getRootView().getWidth(),50,
+                                    70,chart.getY()+chart.getHeight()+20-50, mainbutton.getRootView().getWidth(),50,
+                                    70,70, 200,200,
+                                    mainbutton.getRootView().getWidth()-60-200,70, 200,200,mainbutton.getX(),mainbutton.getY());
+                        }else {
+                            animationupdatelistener.configure(text1,text2 ,mainbutton, mainbutton2,
+                                    70,70, 200,200,
+                                    70,70, 200,200,
+                                    70,70, 200,200,
+                                    500,70, 200,200,mainbutton.getX(),mainbutton.getY());
+                        }
+                        if (text1animator==null) {
+                            text1animator = ValueAnimator.ofFloat(0, 100);
+                        }else {
+                            text1animator.removeAllUpdateListeners();
+                            //text1animator.setFloatValues(0,100);
+                        }
+                        text1animator.addUpdateListener(animationupdatelistener);
+                        text1animator.setDuration(2000);
+                        text1animator.setInterpolator(null);
+                        text1animator.start();
+                        //handler.postDelayed(new Runnable() {
+                        //    @Override
+                        //    public void run() {
+                        //        text1animator.reverse();
+                        //    }
+                        //},1000);
+                        break;
+                    case 1:
+
+                        break;
+                    case 2:
+                        break;
+                    case 3:
+                        break;
+                }
+
+                status++;
+                if (status>3){
+
+
+                    status=0;
+                }
+                resetButtons(v);
+
+
+            }
+        }
+    }
+
+    private class mainbutton2listener implements View.OnClickListener{
+        int status=0;
+        @Override
+        public void onClick(View v) {
+            if (!MainActivity.onDemandRefreshing) {
+                switch (status){
+                    case 0:
+                        break;
+                    case 1:
+                        break;
+                }
+                status++;
+                if (status>2){
+
+                    status=0;
+                }
+            }
+        }
+    }
+
+
+
+    private class animationupdatelistener implements ValueAnimator.AnimatorUpdateListener{
+        View v;  float x,y,endx,endy,dx,dy;int width,height,endwidth,endheight,dw,dh;
+        View vt;  float xt,yt,endxt,endyt,dxt,dyt;int widtht,heightt,endwidtht,endheightt,dwt,dht;
+        View v2; float x2,y2,endx2,endy2,dx2,dy2;int width2,height2,endwidth2,endheight2,dw2,dh2;
+        View v3; float x3,y3,endx3,endy3,dx3,dy3;int width3,height3,endwidth3,endheight3,dw3,dh3;
+        @Override
+        public void onAnimationUpdate(ValueAnimator animation) {
+            float fraction = animation.getAnimatedFraction();
+            v.setX(x+fraction*dx);
+            v.setY(y+fraction*dy);
+            v2.setY(y2+fraction*dy2);
+            v3.setY(y3+fraction*dy3);
+            v.setAlpha(fraction);
+            v.getLayoutParams().height= (int) (height+dh*fraction);
+            v.getLayoutParams().width= (int) (width+dw*fraction);
+            v.requestLayout();
+            if (endxt!=0&&vt!=null){
+                vt.setX(xt+fraction*dxt);
+                vt.setY(yt+fraction*dyt);
+                vt.setAlpha(fraction);
+                vt.getLayoutParams().height= (int) (heightt+dht*fraction);
+                vt.getLayoutParams().width= (int) (widtht+dwt*fraction);
+                vt.requestLayout();
+            }
+            if (endx2!=0&&endx3!=0&&v2!=null&&v3!=null){
+                v2.setX(x2+fraction*dx2);
+                v2.setY(y2+fraction*dy2);
+                //v2.setAlpha(fraction);
+                v2.getLayoutParams().height= (int) (height2+dh2*fraction);
+                v2.getLayoutParams().width= (int) (width2+dw2*fraction);
+                v2.requestLayout();
+                v3.setX(x3+fraction*dx3);
+                v3.setY(y3+fraction*dy3);
+                v3.setAlpha(fraction);
+                v3.getLayoutParams().height= (int) (height3+dh3*fraction);
+                v3.getLayoutParams().width= (int) (width3+dw3*fraction);
+                v3.requestLayout();
+            }
+        }
+
+        animationupdatelistener configure (View v,View vt, View v2,View v3,
+                                           float endx,float endy,int endwidth,int endheight,
+                                           float endxt,float endyt,int endwidtht,int endheightt,
+                                           float endx2,float endy2,int endwidth2,int endheight2,
+                                           float endx3,float endy3,int endwidth3,int endheight3, float x3, float y3){
+            this.v=v;this.v2=v2;this.v3=v3;this.vt=vt;
+            this.x=v.getX();this.y=v.getY();this.endx=endx;this.endy=endy;
+            this.dx=this.endx-this.x;this.dy=this.endy-this.y;
+            this.width=v.getWidth();this.height=v.getHeight();
+            this.endwidth=endwidth;this.endheight=endheight;
+            this.dw=this.endwidth-this.width;this.dh=this.endheight-this.height;
+            this.xt=vt.getX();this.yt=vt.getY();this.endxt=endxt;this.endyt=endyt;
+            this.dxt=this.endxt-this.xt;this.dyt=this.endyt-this.yt;
+            this.widtht=vt.getWidth();this.heightt=vt.getHeight();
+            this.endwidtht=endwidtht;this.endheightt=endheightt;
+            this.dwt=this.endwidtht-this.widtht;this.dht=this.endheightt-this.heightt;
+            this.y2=v2.getY();this.x2=v2.getX();this.endx2=endx2;this.endy2=endy2;
+            this.dy2=this.endheight;this.dx2=this.endx2-this.x2;
+            this.width2=v2.getWidth();this.height2=v2.getHeight();
+            this.endwidth2=endwidth2;this.endheight2=endheight2;
+            this.dw2=this.endwidth2-this.width2;this.dh2=this.endheight2-this.height2;
+            this.y3=y3;this.x3=x3;this.endx3=endx3;this.endy3=endy3;
+            this.dy3=this.endheight;this.dx3=this.endx3-this.x3;
+            this.width3=v3.getWidth();this.height3=v3.getHeight();
+            this.endwidth3=endwidth3;this.endheight3=endheight3;
+            this.dw3=this.endwidth3-this.width3;this.dh3=this.endheight3-this.height3;
+            return this;
+        }
+
+        animationupdatelistener(View v,View vt,View v2,View v3,
+                                float endx,float endy,int endwidth,int endheight,
+                                float endxt,float endyt,int endwidtht,int endheightt,
+                                float endx2,float endy2,int endwidth2,int endheight2,
+                                float endx3,float endy3,int endwidth3,int endheight3, float x3, float y3){
+            configure( v,vt, v2, v3,  endx, endy, endwidth, endheight,endxt, endyt, endwidtht, endheightt, endx2, endy2, endwidth2, endheight2,
+             endx3, endy3, endwidth3, endheight3,  x3,  y3);
+        }
     }
 
 
