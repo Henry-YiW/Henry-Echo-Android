@@ -991,6 +991,7 @@ public class Data {
                     }
 
                 }
+                Data.setData(Data.Type_Electricity,sortdataset(Data.getDataset(Type_Electricity),true));
                 File file=new File(MainActivity.fileDir,"Electricityset");
                 try {
                     FileOutputStream out=new FileOutputStream(file);
@@ -1425,6 +1426,8 @@ public class Data {
             return expandablelistview;
         }
 
+
+
         public List<Pair<Pair<Integer[],Integer>,List<Pair<String,Integer>>>> getRawViewSet() {
             return rawViewSet;
         }
@@ -1593,6 +1596,8 @@ public class Data {
         }
 
 
+
+
         public void setListViewHeight(ExpandableListView listView) {
             ListAdapter listAdapter = listView.getAdapter();
             int totalHeight = 0;
@@ -1637,6 +1642,112 @@ public class Data {
                 }
             },100);
         }
+
+    }
+
+    public static <T extends Number> ArrayList<T> oldsort (ArrayList<T> arraylist, boolean inverse){
+        ArrayList<T> Sorted = (ArrayList<T>) arraylist.clone();
+        for (int i=0;i<Sorted.size();i++){
+            for (int k=0;k<Sorted.size();k++){
+                if (inverse){
+                    if (Sorted.get(i).doubleValue()>Sorted.get(k).doubleValue()){
+                        Sorted.add(k,Sorted.get(i));
+                        int tempi=i;
+                        if (i>k){
+                            tempi++;
+                        }
+                        Sorted.remove(tempi);
+                    }
+                }else {
+                    if (Sorted.get(i).doubleValue() < Sorted.get(k).doubleValue()) {
+                        Sorted.add(k, Sorted.get(i));
+                        int tempi = i;
+                        if (i > k) {
+                            tempi++;
+                        }
+                        Sorted.remove(tempi);
+                    }
+                }
+            }
+        }
+        return Sorted;
+    }
+
+    //Can classify the data based on their data's values before sorting to make the sorting process much more efficient.
+    public static <T extends dataset> ArrayList<T> sortdataset (ArrayList<T> arraylist, boolean inverse) {
+        ArrayList<T> Sorted = new ArrayList<>(arraylist.size());
+        Sorted.add(arraylist.get(0));
+        for (int i=1;i<arraylist.size();i++){
+            int k=0;
+            for (;k<Sorted.size();k++){
+                if (inverse){
+                    if (arraylist.get(i).data>Sorted.get(k).data){
+                        Sorted.add(k,arraylist.get(i));
+                        break;
+                    }
+                }else {
+                    if (arraylist.get(i).data<Sorted.get(k).data){
+                        Sorted.add(k,arraylist.get(i));
+                        break;
+                    }
+                }
+            }
+            if (k==Sorted.size()) {
+                Sorted.add(arraylist.get(i));
+            }
+        }
+        return Sorted;
+    }
+    //Can classify the data based on their data's values before sorting to make the sorting process much more efficient.
+    //And thus can use Sortedvalues to prevent repeated sorting.
+    //And can also use a sorted index list so that any item just after one sorted index does not need to compare to the item before the sorted index.
+    public static <T extends dataset> ArrayList<T> sortdataset2 (ArrayList<T> arraylist, boolean inverse){
+        int[] sortedindex = new int[arraylist.size()];
+        ArrayList<T> Sorted = (ArrayList<T>) arraylist.clone();
+        ArrayList<Number> Sortedvalues = new ArrayList<>();
+        for (int i=0;i<Sorted.size();i++){
+            int tempsortdindex=(i-1)>=0?(sortedindex[(i-1)]==1?(i-1):0):0;
+            for (int k=tempsortdindex;k<Sorted.size();k++){
+                if (inverse){
+                    if (Sorted.get(i).data>Sorted.get(k).data){
+
+                        if (i-k==-1){
+                            break;
+                        }
+                        Sorted.add(k,Sorted.get(i));
+                        int tempi=i;int tempk=k;
+                        if (i>k){
+                            tempi++;
+                        }else if (Sorted.get(i).data!=Sorted.get(i+1).data) {//There is a bug when there are several repeated valuesl so a classified dataset must be used
+                            tempk--;
+                            i--;
+                        } else {
+                            tempk--;
+                        }
+                        Sorted.remove(tempi);
+
+                        sortedindex[tempk]=1;
+                        break;
+                    }
+                }else {
+                    if (Sorted.get(i).data < Sorted.get(k).data) {
+                        if (i-k==-1){
+                            break;
+                        }
+                        Sorted.add(k, Sorted.get(i));
+                        int tempi = i;
+                        if (i > k) {
+                            tempi++;
+                        }else if (Sorted.get(i).data!=Sorted.get(i+1).data) {
+                            i--;
+                        }
+                        Sorted.remove(tempi);
+                        break;
+                    }
+                }
+            }
+        }
+        return Sorted;
     }
 
 }

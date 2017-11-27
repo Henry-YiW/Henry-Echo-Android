@@ -1,6 +1,9 @@
 package com.mywork.henry.henry_echo;
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -41,6 +44,7 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
                 for (setting value : settings) {
                     paint.setAntiAlias(true);
                     paint.setColor(value.color);
+                    paint.setAlpha(value.alpha);
                     paint.setStrokeCap(value.cap);
                     paint.setStrokeWidth(value.width);
                     paint.setStyle(value.style);paint.setTextSize(value.textSize);
@@ -73,10 +77,13 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
                             canvas.drawArc(value.rectF,value.x,value.y,true,paint);
                             break;
                         case 6:
-                            if (value.customImage!=null){
+                            if (value.b!=null){
                                 //canvas.getClipBounds(value.imagebounds);
-                                value.customImage.draw(canvas);
-                                setting.customImage.setAlpha(0xFF);
+                                if (!value.b.isRecycled()) {
+                                    canvas.drawBitmap(value.b, value.x, value.y, paint);
+                                }
+                                //value.b.draw(canvas);
+                                //value.customImage.setAlpha(0xFF);
                             }
                             break;
                     }
@@ -88,6 +95,7 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
         if (setting!=null) {
             paint.setAntiAlias(true);
             paint.setColor(setting.color);
+            paint.setAlpha(setting.alpha);
             paint.setStrokeCap(setting.cap);
             paint.setStrokeWidth(setting.width);
             paint.setStyle(setting.style);paint.setTextSize(setting.textSize);
@@ -120,10 +128,19 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
                     canvas.drawArc(setting.rectF,setting.x,setting.y,true,paint);
                     break;
                 case 6:
-                    if (setting.customImage!=null){
-                        setting.customImage.draw(canvas);
-                        setting.customImage.setAlpha(0xFF);
+                    //if (setting.customImage!=null){
+                    //    setting.customImage.draw(canvas);
+                    //    setting.customImage.setAlpha(0xFF);
+                    //}
+                    if (setting.b!=null){
+                        //canvas.getClipBounds(value.imagebounds);
+                        if (!setting.b.isRecycled()) {
+                            canvas.drawBitmap(setting.b, setting.x, setting.y, paint);
+                        }
+                        //value.b.draw(canvas);
+                        //value.customImage.setAlpha(0xFF);
                     }
+                    break;
             }
             if (setting.RotateDegree!=0){
                 canvas.restore();
@@ -192,11 +209,11 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
         invalidate();
     }
 
-    protected void setImage (float x, float y, float endx, float endy,Drawable customImage, float RotateDegree, float rotatepX, float rotatepY, boolean isNew){
+    protected void setImage (float x, float y, float endx, float endy,Resources resources,int ids, float RotateDegree, float rotatepX, float rotatepY, boolean isNew){
         if (isNew){
-            this.setting=new setting(x, y, endx, endy, customImage, RotateDegree, rotatepX, rotatepY);
+            //this.setting=new setting(x, y, endx, endy, customImage, RotateDegree, rotatepX, rotatepY);
         }else {
-            settings.add(new setting(x, y, endx, endy, customImage, RotateDegree, rotatepX, rotatepY));
+            settings.add(new setting(x, y, endx, endy, resources, ids, RotateDegree, rotatepX, rotatepY));
         }
 
         invalidate();
@@ -237,6 +254,17 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
         this.settings.clear();
     }
 
+    protected void recycleBitmaps(){
+        if (setting!=null&&setting.b!=null){
+            setting.b.recycle();
+        }
+        for (setting temp:this.settings){
+            if (temp.b!=null){
+                temp.b.recycle();
+            }
+        }
+    }
+
     protected void wipeout()  {
         if (settings!=null&&!settings.isEmpty()) {
             haswiped=false;
@@ -263,57 +291,65 @@ public class Chart extends android.support.v7.widget.AppCompatImageView {
         float x; float y; float endx; float endy; int color; Paint.Cap cap;int textY;RectF rectF;Path path;
         float width; Paint.Style style;Shader shader;String string;Paint.Align textalign;int which;
         float textSize;float RotateDegree;float rotatepX;float rotatepY;
-        Drawable customImage=null; Rect imagebounds=null;
+        Drawable customImage=null; Rect imagebounds=null; Bitmap b=null;
+        int alpha;
 
         setting(float x, float y, int color, Paint.Cap cap,
                 float width, Paint.Style style, Shader shader){
-            this(x,y,0,0,color,cap,width, style,shader,null, Paint.Align.LEFT,Text_Top,0,null,null,2,0,0,0);
+            this(x,y,0,0,color,cap,width, style,shader,null, Paint.Align.LEFT,Text_Top,0,null,null,2,0,0,0,0xFF);
         }
         setting(float x, float y, float endx, float endy, int color, Paint.Cap cap,
                 float width, Paint.Style style, Shader shader){
-            this(x,y,endx,endy,color,cap,width,style,shader,null, Paint.Align.LEFT,Text_Top,0,null,null,1,0,0,0);
+            this(x,y,endx,endy,color,cap,width,style,shader,null, Paint.Align.LEFT,Text_Top,0,null,null,1,0,0,0,0xFF);
         }
         setting(float hOffset, float vOffset, int color, Paint.Style style, Shader shader, String string, Paint.Align textalign, float textSize, Path path, float RotateDegree, float rotatepX, float rotatepY){
-            this(hOffset,vOffset,0,0,color, Paint.Cap.ROUND,0,style,shader,string,textalign,0,textSize,null,path,4,RotateDegree,rotatepX,rotatepY);
+            this(hOffset,vOffset,0,0,color, Paint.Cap.ROUND,0,style,shader,string,textalign,0,textSize,null,path,4,RotateDegree,rotatepX,rotatepY,0xFF);
         }
         setting(float x, float y, int color, Paint.Style style, Shader shader, String string, Paint.Align textalign, int textY, float textSize){
-            this(x,y,0,0,color, Paint.Cap.ROUND,0,style,shader,string,textalign,textY,textSize,null,null,3,0,0,0);
+            this(x,y,0,0,color, Paint.Cap.ROUND,0,style,shader,string,textalign,textY,textSize,null,null,3,0,0,0,0xFF);
         }
         setting(float x, float y, float endx, float endy, int color, Paint.Cap cap,
                 float width){
-            this(x,y,endx,endy,color,cap,width, Paint.Style.FILL,null,null, Paint.Align.LEFT,Text_Top,0,null,null,1,0,0,0);
+            this(x,y,endx,endy,color,cap,width, Paint.Style.FILL,null,null, Paint.Align.LEFT,Text_Top,0,null,null,1,0,0,0,0xFF);
         }
         setting(float startAngle, float sweepAngle, int color, float width, Paint.Style style, Shader shader, RectF rectF, float RotateDegree, float rotatepX, float rotatepY){
-            this(startAngle,sweepAngle,0,0,color, Paint.Cap.ROUND,width,style,shader,null, Paint.Align.LEFT,Text_Top,0,rectF,null,5,RotateDegree,rotatepX,rotatepY);
+            this(startAngle,sweepAngle,0,0,color, Paint.Cap.ROUND,width,style,shader,null, Paint.Align.LEFT,Text_Top,0,rectF,null,5,RotateDegree,rotatepX,rotatepY,0xFF);
         }
 
         setting(float x, float y, float endx, float endy, int color, Paint.Cap cap,
                 float width, Paint.Style style, Shader shader, String string,
-                Paint.Align textalign, int textY, float textSize, RectF rectF, Path path , int which, float RotateDegree, float rotatepX, float rotatepY){
+                Paint.Align textalign, int textY, float textSize, RectF rectF, Path path , int which, float RotateDegree, float rotatepX, float rotatepY, int alpha){
             this.x=x;this.y=y;this.endx=endx;this.endy=endy;this.color=color;this.cap=cap;
             this.width=width;this.style=style;this.shader=shader;this.string=string;this.which=which;
             this.textalign =textalign;this.textY=textY;this.rectF = rectF;this.path=path;this.textSize=textSize;
             this.RotateDegree=RotateDegree;this.rotatepX=rotatepX;this.rotatepY=rotatepY;
+            this.alpha=alpha;
         }
 
-        setting (float x, float y, float endx, float endy,Drawable customImage, float RotateDegree, float rotatepX, float rotatepY){
+        setting (float x, float y, float endx, float endy, Resources resources,int ids, float RotateDegree, float rotatepX, float rotatepY){
             this(x,y,endx,endy,0xffffffff, Paint.Cap.ROUND,20);
             this.customImage=customImage;
-            this.imagebounds=new Rect(((int) x), ((int) y), ((int) endx), ((int) endy));
-            customImage.setBounds(imagebounds);
+            //this.imagebounds=new Rect(((int) x), ((int) y), ((int) endx), ((int) endy));
+            Bitmap b = BitmapFactory.decodeResource(resources,ids);
+            //b=b.copy(Bitmap.Config.ARGB_8888, true);
+            Bitmap realb=Bitmap.createScaledBitmap(b, ((int) (endx - x)), ((int) (endy - y)), false);
+            b.recycle();
+            this.b=realb;
+            //customImage.setBounds(imagebounds);
             this.RotateDegree=RotateDegree;this.rotatepX=rotatepX;this.rotatepY=rotatepY;
             this.which=6;
         }
 
         protected setting setAlpha (int alpha){
-            if (customImage!=null){
-                customImage.setAlpha(alpha);
-            }else {
-                int color = FormatFactory.getColorWithoutAlpha(this.color);
-                alpha *= 0x100_0000;
-                color += alpha;
-                this.color = color;
-            }
+            //if (customImage!=null){
+            //    customImage.setAlpha(alpha);
+            //}else {
+            //    int color = FormatFactory.getColorWithoutAlpha(this.color);
+            //    alpha *= 0x100_0000;
+            //    color += alpha;
+            //    this.color = color;
+            //}
+            this.alpha=alpha;
             return this;
         }
 

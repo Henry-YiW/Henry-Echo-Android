@@ -10,6 +10,7 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ConfigurationInfo;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.AnimationDrawable;
@@ -25,6 +26,7 @@ import android.support.v7.view.menu.ActionMenuItemView;
 import android.support.v7.widget.ActionMenuView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.util.Pair;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -157,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
 
     Button mainbutton;
     final DrawingMethods.drawPie drawPie=new DrawingMethods.drawPie();
+    final DrawingMethods.fade fade =new DrawingMethods.fade();
     CustomDrawingThread paintingThread;
     private final Object lock=new Object();
     Chart chart;
@@ -213,16 +216,29 @@ public class MainActivity extends AppCompatActivity {
                     //v.setActivated(true);
 
                     checkPaintingThread();
-                    //paintingThread.refresh(drawPie.configure(handler,chart,600, mainbutton.getX(), Data.getDataset(Data.Type_Electricity)));
-                    chart.setImage(0,0,300,300,getDrawable(R.drawable.icon5),0,0,0,true);
+                    Object[] configuration = new Object[7];
+                    configuration[0]=handler;
+                    configuration[1]=chart;
+                    configuration[2]=600;
+                    configuration[3]=v.getX();
+                    configuration[4]=Data.getDataset(Data.Type_Electricity);
+                    configuration[5]=getResources();//new Drawable[]{getDrawable(R.drawable.icon5),getDrawable(R.drawable.icon3),getDrawable(R.drawable.fab_10)};
+                    configuration[6]=new int[]{R.drawable.icon5,R.drawable.icon3,R.drawable.fab_10};
+                    paintingThread.refresh(drawPie.reset(configuration));
+                    Object[] configuration2 = new Object[]{handler,chart,200};
+                    paintingThread.next(fade.reset(configuration2));
+                    paintingThread.next(drawPie,configuration);
+                    //chart.setImage(0,0,300,300,getDrawable(R.drawable.icon5),0,0,0,true);
                     //chart.setSimpleline(0,0,300,300,0xff234234, Paint.Cap.ROUND,10,true);
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            chart.getSetting().setAlpha(30);
-                            chart.invalidate();
-                        }
-                    },1000);
+                    //handler.postDelayed(new Runnable() {
+                    //    @Override
+                    //    public void run() {
+                    //        if (chart.getSetting()!=null) {
+                    //            chart.getSetting().setAlpha(30);
+                    //        }
+                    //        chart.invalidate();
+                    //    }
+                    //},1000);
                     //paintingThread.refresh(drawPie.configure(handler,chart,600, v.getX(), Data.getDataset(Data.Type_Electricity)));
 
                     //chart.setSimpleline(0,0,200,200,0xffffffff, Paint.Cap.ROUND,20,true);
@@ -1085,6 +1101,8 @@ public class MainActivity extends AppCompatActivity {
 
     class CustomDrawingThread extends Thread{
         Runnable runnable;volatile boolean runfinished=false;
+        final ArrayList<Pair<Runnable,Object[]>> Drawings=new ArrayList<>();
+        volatile boolean forcefinished=false;
         @Override
         public void run() {
 
@@ -1095,6 +1113,17 @@ public class MainActivity extends AppCompatActivity {
                     runnable = null;
                 }
 
+                for (int i=0;i<Drawings.size()&&!forcefinished;i++){
+                    runfinished=false;
+                    if (Drawings.get(i).second!=null){
+                        ((DrawingMethods.drawingRunnable) Drawings.get(i).first).reset(Drawings.get(i).second);
+                    }
+                    Drawings.get(i).first.run();
+                }
+
+                synchronized (Drawings){
+                    Drawings.clear();
+                }
                 if (isInterrupted()){
                     return;
                 }
@@ -1113,10 +1142,12 @@ public class MainActivity extends AppCompatActivity {
         void refresh (Runnable runnable){
             synchronized (this){
                 DrawingMethods.stopani=true;
+                forcefinished=true;
                 while (true){
                     //if(this.getState()==State.WAITING||this.getState()==State.TIMED_WAITING){
                     if(runfinished){
                         DrawingMethods.stopani=false;
+                        forcefinished=false;
                         break;
                     }
                 }
@@ -1126,6 +1157,24 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
+        }
+
+        void next (Runnable runnable){
+            synchronized (Drawings) {
+                Drawings.add(new Pair<Runnable, Object[]>(runnable,null));
+            }
+            synchronized (lock){
+                lock.notify();
+            }
+        }
+
+        void next (Runnable runnable,Object[] configuration){
+            synchronized (Drawings) {
+                Drawings.add(new Pair<Runnable, Object[]>(runnable,configuration));
+            }
+            synchronized (lock){
+                lock.notify();
+            }
         }
     }
 

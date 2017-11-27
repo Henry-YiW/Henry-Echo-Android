@@ -1,16 +1,21 @@
 package com.mywork.henry.henry_echo;
 
+import android.content.res.Resources;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.drawable.Drawable;
+import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
 
 /**
@@ -20,7 +25,7 @@ import java.util.Locale;
 public class DrawingMethods {
     public static volatile boolean stopani=false;
 
-    static class drawPie implements Runnable {
+    static class drawPie implements drawingRunnable {
         Chart tempchart=null;Handler handler=null;
         ArrayList<Data.dataset> dataset;int time;float startX;final int sleeptimes=10;
         final float marginY=25;int Color;String name;RectF rectf;
@@ -29,7 +34,17 @@ public class DrawingMethods {
         float data;float tempdegree;final float annotationmargin=150;RectF dataRectF;float datacenterY;float centerX;
         Path path;final int frameColor2=0xfffcff00;final ArrayList<Float> linemargin=new ArrayList<>();Paint.Align align;
         float textStartX;
+
+        int throttle = 500;
+        private Object[] configuration;
+        //private Drawable[] images;
+        private Resources resources;
+        private int[] images;
+
         public void run() {
+            if (configuration!=null) {
+                configure(configuration);
+            }
             final Chart chart=tempchart;float Yheight;
             try {
                 Yheight=chart.getHeight();
@@ -457,6 +472,36 @@ public class DrawingMethods {
                         return;
                     }
                 }
+                Rect bounds=new Rect(0,0,60,60);//should be made as an adaptive bounds
+                if (datasum>0){
+                    float pastdegree=0;
+                    float average = datasum/dataset.size();
+                    int count=0;
+                    for (Data.dataset temp: dataset){
+                        if (stopani) {
+
+                            return;
+                        }
+                        if (temp.data>=average){
+                            if (stopani) {
+
+                                return;
+                            }
+                            drawindicators(temp, datasum, pastdegree,centerX+datacenterY+60,chart,7,resources,images[count],bounds,3);
+                            if (stopani) {
+
+                                return;
+                            }
+                            pastdegree+=(temp.data/datasum)*360;
+                            if (stopani) {
+
+                                return;
+                            }
+                            count++;
+                        }
+                    }
+                }
+
             }
             finally{
                 setDefault();
@@ -482,7 +527,125 @@ public class DrawingMethods {
                 }
                 index++;
             }
-            return linenumber+1;}
+            return linenumber+1;
+        }
+
+
+        private void drawindicators (Data.dataset dataset, float datasum, float pastdegree, final float endx, final Chart chart, final int width,
+                                     final Resources resources, final int image, final Rect bounds, int number){
+            final float x,y;
+            float data = dataset.data;
+            float degree=(data/datasum)*360;
+            x= (float) (Math.cos(Math.toRadians(startdegree+pastdegree+degree/2))*datacenterY*4/5)+centerX;
+            y= (float) (Math.sin(Math.toRadians(startdegree+pastdegree+degree/2))*datacenterY*4/5)+datacenterY;
+            float length= endx-x;
+            float segmentlength=length * sleeptimes/ time;
+            float templength=segmentlength;
+            while (true){
+                if (stopani) {
+
+                    return;
+                }
+                if (templength<length){
+                    final float finalTemplength = templength;
+                    if (stopani) {
+
+                        return;
+                    }
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            chart.setSimpleline(x,y,x+ finalTemplength,y,0xFFFFFFFF, Paint.Cap.ROUND,width,true);
+                        }
+                    });
+                    if (stopani) {
+
+                        return;
+                    }
+                    try {
+                        Thread.sleep(sleeptimes);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                    if (stopani) {
+
+                        return;
+                    }
+                    templength+=segmentlength;
+                }else{
+                    if (stopani) {
+
+                        return;
+                    }
+                    savedrawing(new Chart.setting(x,y,endx,y,0xFFFFFFFF, Paint.Cap.ROUND,width));
+                    if (stopani) {
+
+                        return;
+                    }
+                    final ArrayList<Chart.setting> tempdrawingsave=(ArrayList<Chart.setting>) drawingsave.clone();
+                    if (stopani) {
+
+                        return;
+                    }
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            chart.clear();
+                            chart.setArrayDrawing(tempdrawingsave);
+                        }
+                    });
+                    int num=0;float startx=endx+10;
+                    while (num<number){
+                        if (stopani) {
+
+                            return;
+                        }
+                        savedrawing(new Chart.setting(startx,y-bounds.bottom/2,startx+bounds.right,y+bounds.bottom/2,resources,image,0,0,0));
+                        final float finalStartx = startx;
+                        if (stopani) {
+
+                            return;
+                        }
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                chart.setImage(finalStartx,y-bounds.bottom/2, finalStartx +bounds.right,y+bounds.bottom/2,resources,image,0,0,0,false);
+                            }
+                        });
+                        startx+=bounds.right+10;
+                        num++;
+                        if (stopani) {
+
+                            return;
+                        }
+                        try {
+                            Thread.sleep(sleeptimes*10);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            return;
+                        }
+                    }
+
+                    if (stopani) {
+
+                        return;
+                    }
+                    try {
+                        Thread.sleep(sleeptimes);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                    if (stopani){
+                        return;}
+                    break;
+                }
+
+            }
+
+
+        }
 
         private void drawdata(float dataY,float textsize,final Chart chart){if (stopani){
             return;}
@@ -562,15 +725,28 @@ public class DrawingMethods {
 
         //}
 
-        public drawPie  configure (Handler handler, Chart chart, int time, float startX, ArrayList dataset){
+        public drawPie reset (Object []configuration){
+            this.configuration =configuration;
+            return this;
+        }
+
+        private void configure (Object[] configuration){
+            configure(((Handler) configuration[0]), ((Chart) configuration[1]), ((int) configuration[2]), ((float) configuration[3])
+                    , ((ArrayList) configuration[4]), ((Resources) configuration[5]), ((int[]) configuration[6]));
+            this.configuration=null;
+        }
+
+        private void  configure (Handler handler, Chart chart, int time, float startX, ArrayList dataset, Resources resources,int [] images ){
             this.handler=handler;
             this.tempchart=chart;
             this.time=time;
             this.dataset = (ArrayList<Data.dataset>) dataset.clone();this.startX=startX;
-            return this;
+            this.images=images;
+            this.resources=resources;
         }
 
         private void setDefault(){
+            tempchart.recycleBitmaps();
             this.tempchart=null;this.handler=null;
             this.dataset.clear();this.time=0;this.startX=0;
             this.Color=0;this.name=null;this.rectf=null;
@@ -579,6 +755,9 @@ public class DrawingMethods {
             this.data=0;this.tempdegree=0;this.dataRectF=null;this.datacenterY=0;this.centerX=0;
             this.path=null;this.linemargin.clear();this.align=null;
             this.textStartX=0;
+            this.images=null;
+            this.resources=null;
+
         }
 
         private float getArcdrift (final Chart chart){
@@ -636,18 +815,107 @@ public class DrawingMethods {
             drawingsave.add(setting);
         }
 
-        public void start (Handler handler, Chart chart, int time, float startX, ArrayList dataset){
-            this.configure(handler,chart,time,startX, dataset);
-            run();
 
-        }
 
 
     }
 
+    static class fade implements drawingRunnable{
+        Chart tempchart=null;Handler handler=null;
+        ArrayList<Data.dataset> dataset;int time;float startX;final int sleeptimes=10;;
+        final ArrayList<Chart.setting> drawingsave = new ArrayList<>(100);
+
+        private Object[] configuration;
+        @Override
+        public void run() {
+            Log.d("Has been fading","fading");
+            configure(configuration);
+            int alpha=0xFF;
+            int segment=alpha*sleeptimes/time;
+            final Chart chart=tempchart;
+            while (true){
+                if (stopani){
+                    return;}
+                if (alpha>0){
+                    if (stopani){
+                        return;}
+
+                    ArrayList<Chart.setting> settings = chart.getArraydrawing();
+                    for (Chart.setting temp:settings){
+                        if (stopani){
+                            return;}
+                        temp.setAlpha(alpha);
+                    }
+                    if (stopani){
+                        return;}
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            chart.invalidate();
+                        }
+                    });
+                    alpha-=segment;
+                    try {
+                        Thread.sleep(sleeptimes);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }else {
+                    if (stopani){
+                        return;}
+                    chart.recycleBitmaps();
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            chart.clear();
+                            chart.invalidate();
+                        }
+                    });
+                    if (stopani){
+                        return;}
+                    break;
+                }
+
+            }
+        }
+
+        public fade reset (Object []configuration){
+            this.configuration =configuration;
+            return this;
+        }
+
+        private void configure (Object[] configuration){
+            configure(((Handler) configuration[0]), ((Chart) configuration[1]), ((int) configuration[2]));
+            this.configuration=null;
+        }
+
+        private void  configure (Handler handler, Chart chart, int time ){
+            this.handler=handler;
+            this.tempchart=chart;
+            this.time=time;
+        }
+
+        private void setDefault(){
+            tempchart.recycleBitmaps();
+            this.tempchart=null;this.handler=null;
+            this.dataset.clear();this.time=0;
+            clearsaved();
+
+        }
+
+        private void clearsaved (){
+            drawingsave.clear();
+        }
+
+        private void savedrawing (Chart.setting setting){
+            drawingsave.add(setting);
+        }
+    }
 
 
-    static class drawHistogram implements Runnable {
+
+    static class drawHistogram implements drawingRunnable {
         Chart tempchart=null;Handler handler=null;
         int time;final float margin=53;float rawtargetwidth;final int sleeptimes=48;float scaleunitY;int scaleunit;
         float targetwidth;final float targetheight=615;//targetheight = rawtargetheight
@@ -661,7 +929,12 @@ public class DrawingMethods {
         final int dataWidth=50;float useddataY;float tempdataY;float datasegmentX;float datasegmentY;Shader dataShader;
         final ArrayList<Chart.setting> drawingsave = new ArrayList<>(100);Shader dataShaderfinal;float dataYdrift;
         Chart.setting usedDataTimesetting;
+        private Object[] configuration;
+
         public void run() {
+            if (configuration!=null){
+                configure(configuration);
+            }
             final Chart chart=tempchart;
             try {
                 rawtargetwidth=chart.getWidth()-margin;
@@ -989,7 +1262,21 @@ public class DrawingMethods {
             return temp[0]+temp2[0]+":"+temp2[1];
         }
 
-        public drawHistogram configure (Handler handler, Chart chart, int time, float targetX, float scaleunitY, int scaleunit, int scale, ArrayList<Integer> dataColorset, ArrayList data,
+        public drawHistogram reset (Object []configuration){
+            this.configuration =configuration;
+            return this;
+        }
+
+        private void configure (Object[] configuration){
+            configure(((Handler) configuration[0]), ((Chart) configuration[1]), ((int) configuration[2]), ((float) configuration[3]), ((float) configuration[4]),
+                    ((int) configuration[5]), ((int) configuration[6]), ((ArrayList<Integer>) configuration[7]), ((ArrayList) configuration[8]),
+                    ((int) configuration[9]), ((int) configuration[10]));
+            this.configuration=null;
+        }
+
+
+
+        private void configure (Handler handler, Chart chart, int time, float targetX, float scaleunitY, int scaleunit, int scale, ArrayList<Integer> dataColorset, ArrayList data,
                                         int frameColor2, int frameColor3){
             this.handler=handler;
             this.tempchart=chart;
@@ -1001,7 +1288,6 @@ public class DrawingMethods {
             this.scale = scale;
             this.FrameColor2=frameColor2;
             this.FrameColor3=frameColor3;
-            return this;
         }
 
         private void setDefault (){
@@ -1235,6 +1521,11 @@ public class DrawingMethods {
             //paint.getTextBounds();
             return (int) Math.ceil(paint.measureText(time));
         }
+
+    }
+
+     interface drawingRunnable extends Runnable{
+         public drawingRunnable reset (Object []configuration);
 
     }
 
